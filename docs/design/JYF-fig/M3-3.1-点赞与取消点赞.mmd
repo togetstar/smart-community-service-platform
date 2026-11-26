@@ -1,0 +1,18 @@
+sequenceDiagram
+    autonumber
+    actor S as 学生
+    participant I as PostInteractionService
+    participant DB as 数据库
+    S->>I: PUT 或 DELETE /posts/{id}/like
+    I->>DB: 在事务内锁定帖子并校验可见性
+    alt 帖子不可见
+        I-->>S: 404
+    else 帖子可见
+        alt 点赞
+            I->>DB: 插入本人点赞关系，已存在时沿用
+        else 取消
+            I->>DB: 删除本人点赞关系，允许零行
+        end
+        I->>DB: 查询个人状态和总数，提交事务
+        I-->>S: 返回 liked 与 likeCount
+    end
