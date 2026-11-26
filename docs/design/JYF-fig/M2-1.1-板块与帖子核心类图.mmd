@@ -1,0 +1,40 @@
+classDiagram
+    direction LR
+    class Board {
+        +Long id
+        +String name
+        +BoardStatus status
+        +Integer sortOrder
+    }
+    class Post {
+        +Long id
+        +Long boardId
+        +Long authorId
+        +String title
+        +String body
+        +ContentStatus status
+        +Boolean commentsEnabled
+        +Date publishedAt
+        +Date updatedAt
+    }
+    class PostSubmission {
+        +Long authorId
+        +String idempotencyKey
+        +String payloadHash
+        +Long postId
+    }
+    class BoardStatus {
+        <<enumeration>>
+        ACTIVE
+        DISABLED
+    }
+    class ContentStatus {
+        <<enumeration>>
+        VISIBLE
+        HIDDEN
+        DELETED
+    }
+    Board "1" -- "*" Post : 归属
+    Post "1" -- "1" PostSubmission : 成功提交
+    Board ..> BoardStatus : 板块状态
+    Post ..> ContentStatus : 内容状态
