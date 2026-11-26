@@ -1,0 +1,16 @@
+sequenceDiagram
+    autonumber
+    actor O as 发帖人
+    participant I as PostInteractionService
+    participant DB as 数据库
+    O->>I: PUT /posts/{id}/comment-setting，提交目标开关
+    I->>I: 校验会话和布尔参数
+    I->>DB: 在事务内锁定帖子，检查当前用户和状态
+    alt 不存在或非本人
+        I-->>O: 404
+    else 本人帖子已失效
+        I-->>O: 409
+    else 本人可见帖子
+        I->>DB: 写入目标开关，重复设置保持当前值
+        I-->>O: 200，返回当前开关
+    end
