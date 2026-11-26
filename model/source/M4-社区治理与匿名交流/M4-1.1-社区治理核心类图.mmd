@@ -1,0 +1,162 @@
+classDiagram
+    direction LR
+
+    class User {
+        +Long id
+        +String nickname
+    }
+    class Post {
+        +Long id
+        +Long authorId
+        +String title
+        +Boolean isAnonymous
+        +String anonymousAlias
+        +ContentStatus status
+        +Long removedBy
+        +Date removedAt
+        +String removeReason
+    }
+    class Comment {
+        +Long id
+        +Long postId
+        +Long authorId
+        +String body
+        +ContentStatus status
+        +Long removedBy
+        +Date removedAt
+        +String removeReason
+    }
+    class ContentStatus {
+        <<enumeration>>
+        VISIBLE
+        HIDDEN
+        DELETED
+    }
+    class Report {
+        +Long id
+        +Long reporterId
+        +ReportTargetType targetType
+        +Long targetId
+        +ReportReason reason
+        +String detail
+        +ReportStatus status
+        +String conclusion
+        +ReportAction action
+        +Long operatorId
+        +Date createdAt
+        +Date processedAt
+    }
+    class ReportTargetType {
+        <<enumeration>>
+        POST
+        COMMENT
+    }
+    class ReportReason {
+        <<enumeration>>
+        SPAM
+        ABUSE
+        PORNOGRAPHY
+        INFRINGEMENT
+        OTHER
+    }
+    class ReportStatus {
+        <<enumeration>>
+        PENDING
+        UPHELD
+        REJECTED
+    }
+    class ReportAction {
+        <<enumeration>>
+        NONE
+        VIOLATION_CONFIRMED
+        CONTENT_REMOVED
+    }
+    class UserRestriction {
+        +Long id
+        +Long userId
+        +RestrictionType type
+        +String reason
+        +Date startAt
+        +Date endAt
+        +RestrictionStatus status
+        +Long createdBy
+        +Date revokedAt
+        +Long revokedBy
+    }
+    class RestrictionType {
+        <<enumeration>>
+        POST
+        COMMENT
+    }
+    class RestrictionStatus {
+        <<enumeration>>
+        ACTIVE
+        REVOKED
+        EXPIRED
+    }
+    class AdminAuditLog {
+        +Long id
+        +Long operatorId
+        +AuditAction action
+        +AuditTargetType targetType
+        +Long targetId
+        +String reason
+        +String extraJson
+        +Date createdAt
+    }
+    class AuditAction {
+        <<enumeration>>
+        REPORT_UPHELD
+        REPORT_REJECTED
+        CONTENT_HIDE
+        ACCOUNT_LIMIT
+        ACCOUNT_UNLIMIT
+        TRACE_ANONYMOUS
+    }
+    class AuditTargetType {
+        <<enumeration>>
+        REPORT
+        POST
+        COMMENT
+        USER
+    }
+    class Notification {
+        +Long id
+        +Long userId
+        +String type
+        +Long eventId
+        +String targetType
+        +Long targetId
+        +String payload
+        +Boolean isRead
+        +Date createdAt
+    }
+
+    User "1" -- "*" Post : 发布（M2 所有）
+    User "1" -- "*" Comment : 发表（M3 所有）
+    User "1" -- "*" Report : 提交（reporter）
+    User "0..1" -- "*" Report : 处理（operator）
+    Report ..> Post : targetType=POST
+    Report ..> Comment : targetType=COMMENT
+
+    User "1" -- "*" UserRestriction : 被限制
+    User "1" -- "*" UserRestriction : 设置（createdBy）
+
+    User "1" -- "*" AdminAuditLog : 操作者
+    AdminAuditLog ..> Report : 处理举报
+    AdminAuditLog ..> Post : 下架或追溯
+    AdminAuditLog ..> Comment : 隐藏
+    AdminAuditLog ..> User : 限制账号
+
+    User "1" -- "*" Notification : 接收（M6 所有）
+
+    Post ..> ContentStatus : 状态
+    Comment ..> ContentStatus : 状态
+    Report ..> ReportTargetType : 目标类型
+    Report ..> ReportReason : 举报原因
+    Report ..> ReportStatus : 状态
+    Report ..> ReportAction : 处置
+    UserRestriction ..> RestrictionType : 限制范围
+    UserRestriction ..> RestrictionStatus : 状态
+    AdminAuditLog ..> AuditAction : 动作
+    AdminAuditLog ..> AuditTargetType : 目标类型

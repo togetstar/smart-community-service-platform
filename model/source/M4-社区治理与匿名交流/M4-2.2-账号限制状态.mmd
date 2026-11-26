@@ -1,0 +1,16 @@
+stateDiagram-v2
+    direction LR
+    state "限制中" as Active
+    state "已解除" as Revoked
+    state "已到期" as Expired
+
+    [*] --> Active : 管理员设置发帖或评论限制（记录理由与期限）
+    Active --> Revoked : 管理员解除（记录解除人与时间）
+    Active --> Expired : 当前时间超过 endAt（查询时惰性修正或定时清理）
+    Revoked --> [*]
+    Expired --> [*]
+
+    note right of Active
+        调整期限或范围不直接修改类型：
+        先解除旧记录，再创建新记录。
+    end note

@@ -1,0 +1,30 @@
+sequenceDiagram
+    autonumber
+    actor U as 访问者
+    participant FE as 前端
+    participant Auth as 鉴权中间件
+    participant PS as PermissionService
+    participant C as 管理Controller
+    participant DB as 数据库
+
+    U->>FE: 打开管理页面或执行管理操作
+    FE->>Auth: 请求 /admin/**
+    Auth->>DB: 校验会话
+    alt 未登录或会话失效
+        Auth-->>FE: 401，跳转登录
+    else 已登录
+        Auth->>PS: hasPermission(userId, requiredPermission)
+        PS->>DB: 实时查询用户角色与权限点
+        DB-->>PS: 当前有效权限集合
+        alt 权限不足或权限刚被撤销
+            PS-->>Auth: false
+            Auth-->>FE: 403，不返回管理数据
+        else 权限通过
+            PS-->>Auth: true
+            Auth->>C: 放行
+            C->>DB: 执行业务查询或修改
+            DB-->>C: 结果
+            C-->>FE: 200 授权范围内数据
+        end
+    end
+    Note over FE: 前端按权限隐藏入口只做体验优化，后端必须独立校验
