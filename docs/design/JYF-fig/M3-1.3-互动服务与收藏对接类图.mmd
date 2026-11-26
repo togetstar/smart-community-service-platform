@@ -1,0 +1,33 @@
+classDiagram
+    direction LR
+    class InteractionController
+    class PostInteractionService {
+        +setLike(userId, postId, liked)
+        +setCommentsEnabled(userId, postId, enabled)
+        +createComment(userId, postId, body)
+        +deleteComment(userId, postId, commentId)
+    }
+    class InteractionQueryService {
+        +getVisibleComments(postId, page)
+        +batchGetCounts(postIds)
+        +hasLiked(userId, postId)
+    }
+    class FavoriteService {
+        +setFavorite(userId, postId, favorited)
+        +listMine(userId, page)
+    }
+    class Favorite {
+        +Long id
+        +Long postId
+        +Long userId
+        +Date createdAt
+    }
+    class PostQueryService
+    InteractionController ..> PostInteractionService
+    PostInteractionService ..> PostLike
+    PostInteractionService ..> Comment
+    InteractionQueryService ..> PostLike
+    InteractionQueryService ..> Comment
+    FavoriteService ..> PostQueryService : M2 可见性与公开摘要
+    FavoriteService ..> Favorite : M5 保存
+    Post "1" -- "*" Favorite : 被收藏
