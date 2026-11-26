@@ -1,0 +1,19 @@
+sequenceDiagram
+    autonumber
+    actor U as 浏览者
+    participant FE as 前端
+    participant Q as PostQueryService
+    participant DB as 数据库
+    U->>FE: 输入关键词并可选板块
+    FE->>Q: GET /posts，传入 q、boardId 和分页
+    Q->>Q: 规范化关键词与分页参数
+    opt 指定板块
+        Q->>DB: 检查板块启用状态
+    end
+    alt 指定板块已失效
+        Q-->>FE: 404，提示改选板块
+    else 查询参数有效
+        Q->>DB: 用绑定参数查询可见帖，匹配标题或正文并叠加板块条件
+        DB-->>Q: 按发布时间和 ID 倒序返回结果页
+        Q-->>FE: 返回公开摘要，未命中时返回空列表
+    end
