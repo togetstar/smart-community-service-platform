@@ -1,0 +1,23 @@
+classDiagram
+    direction LR
+    class Post {
+        +Long id
+        +Long authorId
+        +ContentStatus status
+        +Boolean commentsEnabled
+    }
+    class PostLike {
+        +Long postId
+        +Long userId
+        +Date createdAt
+    }
+    class Comment {
+        +Long id
+        +Long postId
+        +Long authorId
+        +String body
+        +ContentStatus status
+        +Date createdAt
+    }
+    Post "1" -- "*" PostLike : 点赞关系
+    Post "1" -- "*" Comment : 评论
