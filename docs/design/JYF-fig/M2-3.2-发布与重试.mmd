@@ -1,0 +1,39 @@
+sequenceDiagram
+    autonumber
+    actor S as 学生
+    participant FE as 前端
+    participant P as PostService
+    participant DB as 数据库
+    S->>FE: 填写标题、正文并选择板块
+    FE->>P: POST /posts，携带 Idempotency-Key
+    P->>P: 校验有效会话，取得当前用户
+    P->>DB: 开启事务，锁定提交人并按用户和键查询
+    alt 已有提交且摘要相同
+        P->>DB: 结束事务
+        P-->>FE: 200，回放原 postId
+    else 已有提交但摘要不匹配
+        P->>DB: 结束事务
+        P-->>FE: 409，请求内容与原提交不同
+    else 尚无提交记录
+        P->>P: 校验必填项和当前发帖权限
+        P->>DB: 锁定板块，校验板块启用
+        alt 输入、权限或板块校验失败
+            P->>DB: 结束事务
+            P-->>FE: 返回对应错误并保留草稿
+        else 校验通过
+            P->>DB: 同事务写入帖子和提交记录
+            alt 事务提交成功
+                P-->>FE: 201，返回 postId
+            else 幂等键发生唯一冲突
+                P->>DB: 回滚并用新事务读取获胜记录
+                P-->>FE: 同摘要回放原结果，否则返回 409
+            else 事务失败
+                P-->>FE: 返回失败；结果不确定时提示重试
+            end
+        end
+    end
+    opt 请求未送达或响应中断
+        FE-->>S: 提示结果待确认
+        S->>FE: 恢复网络后重试
+        FE->>P: 用同一幂等键重发原请求
+    end
