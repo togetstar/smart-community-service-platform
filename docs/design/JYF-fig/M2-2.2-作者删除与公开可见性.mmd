@@ -1,0 +1,11 @@
+stateDiagram-v2
+    direction LR
+    state "公开可见" as Visible
+    state "已下架" as Hidden
+    state "已删除" as Deleted
+    [*] --> Visible : 发帖成功
+    Visible --> Visible : 本人编辑成功
+    Visible --> Hidden : 接收下架状态
+    Visible --> Deleted : 本人确认删除
+    Hidden --> Deleted : 本人确认删除
+    Deleted --> Deleted : 本人重复删除
