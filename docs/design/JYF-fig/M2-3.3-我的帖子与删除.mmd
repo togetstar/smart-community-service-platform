@@ -1,0 +1,21 @@
+sequenceDiagram
+    autonumber
+    actor S as 发帖人
+    participant FE as 前端
+    participant P as PostService
+    participant DB as 数据库
+    S->>FE: 打开我的帖子
+    FE->>P: GET /me/posts
+    P->>DB: 按会话用户查询，按发布时间和 ID 倒序
+    P-->>FE: 本人帖子及其状态
+    S->>FE: 确认删除
+    FE->>P: DELETE /posts/{id}
+    P->>DB: 在事务内锁定目标并检查作者
+    alt 不存在或不属于本人
+        P-->>FE: 404
+    else 本人帖子仍为可见或已下架
+        P->>DB: 将帖子标记为 DELETED 并提交
+        P-->>FE: 204
+    else 本人帖子已删除
+        P-->>FE: 204，沿用原结果
+    end
