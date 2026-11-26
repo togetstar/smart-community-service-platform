@@ -1,0 +1,65 @@
+sequenceDiagram
+    autonumber
+    actor A as 社区管理员
+    actor S as 受限学生
+    participant FE as 管理前端
+    participant Auth as 鉴权中间件
+    participant UC as AdminUserController
+    participant RS as RestrictionService
+    participant AS as AuditService
+    participant NS as NotificationService（M6）
+    participant DB as 数据库
+
+    A->>FE: 选择账号，设置发帖或评论限制
+    FE->>Auth: POST /admin/users/{id}/restrictions
+    Auth->>Auth: 校验 account:limit
+    alt 无权限
+        Auth-->>FE: 403
+    else 有权限
+        Auth->>UC: 放行
+        UC->>RS: restrict(userId, type, reason, startAt, endAt)
+        RS->>RS: 校验理由非空、endAt 为空或晚于 startAt
+        RS->>DB: BEGIN
+        RS->>DB: 锁定并检查同用户同类型 ACTIVE 记录
+        alt 已存在同类型有效限制
+            RS->>DB: ROLLBACK
+            RS-->>FE: 409 请先解除旧限制或执行调整操作
+        else 可创建
+            RS->>DB: INSERT user_restriction(status='ACTIVE')
+            alt 插入成功
+                RS->>AS: log(ACCOUNT_LIMIT, target=userId, reason)
+                AS->>DB: INSERT admin_audit_log（同事务）
+                RS->>DB: COMMIT
+                RS->>NS: notify(userId, account_restricted, reason, startAt, endAt)
+                Note over RS,NS: COMMIT 后通知；失败不回滚限制，由查询接口兜底告知
+                RS-->>FE: 200 限制已生效
+            else 并发导致 ACTIVE 唯一约束冲突
+                DB-->>RS: 唯一约束异常
+                RS->>DB: ROLLBACK
+                RS-->>FE: 409 已存在同类型有效限制，不写审计、不发通知
+            end
+        end
+    end
+
+    S->>RS: GET /me/restrictions/current（已登录）
+    RS->>DB: SELECT user_restriction WHERE user_id=currentUserId
+    RS->>RS: 惰性判定到期并持久化 EXPIRED
+    RS-->>S: 返回当前限制类型、理由、开始与结束时间；无有效限制返回空列表
+    Note over S,RS: 该查询为 FR-20“说明理由”的强制兜底，不依赖 M6 是否接入
+
+    A->>FE: 解除限制
+    FE->>Auth: POST /admin/users/{id}/restrictions/{rid}/revoke
+    Auth->>UC: 校验 account:limit 通过
+    UC->>RS: revoke(rid, operatorId, reason)
+    RS->>DB: BEGIN
+    RS->>DB: UPDATE user_restriction SET status='REVOKED', revoked_at, revoked_by WHERE id=rid AND status='ACTIVE'
+    alt 未更新任何记录
+        RS->>DB: ROLLBACK
+        RS-->>FE: 409 限制不存在或已解除 / 到期，不重复写审计与通知
+    else 更新成功
+        RS->>AS: log(ACCOUNT_UNLIMIT, target=userId, reason)
+        AS->>DB: INSERT admin_audit_log（同事务）
+        RS->>DB: COMMIT
+        RS->>NS: notify(userId, account_restored)
+        RS-->>FE: 200 已恢复
+    end

@@ -1,0 +1,37 @@
+sequenceDiagram
+    autonumber
+    actor A as 社区管理员
+    participant FE as 管理前端
+    participant Auth as 鉴权中间件
+    participant PC as AdminPostController
+    participant TS as TraceService
+    participant PS as PostService（M5）
+    participant AS as AuditService
+    participant DB as 数据库
+
+    A->>FE: 对匿名帖发起追溯，填写核查理由
+    FE->>Auth: POST /admin/posts/{id}/trace-anonymous
+    Auth->>Auth: 校验 anonymous:trace
+    alt 无权限
+        Auth-->>FE: 403
+    else 有权限
+        Auth->>PC: 放行
+        PC->>TS: trace(postId, adminId, reason)
+        TS->>TS: 校验理由非空且长度合规
+        TS->>PS: getRealAuthor(postId)
+        PS->>DB: SELECT post WHERE id=? AND is_anonymous=true
+        alt 非匿名帖或不存在
+            DB-->>PS: 无结果
+            PS-->>TS: 400 不可追溯
+        else 匿名帖（VISIBLE / HIDDEN / DELETED 均可核查）
+            DB-->>PS: author_id
+            PS-->>TS: authorId
+            TS->>DB: BEGIN
+            TS->>AS: log(TRACE_ANONYMOUS, post=postId, reason, returnedFieldNames)
+            AS->>DB: INSERT admin_audit_log（唯一追溯记录，不写敏感字段值）
+            TS->>DB: COMMIT
+            TS-->>PC: 最小化账号信息 + 审计记录号
+            PC-->>FE: 200 仅本次授权响应可见
+        end
+    end
+    Note over PS: 对外列表、搜索、详情仍返回匿名标识

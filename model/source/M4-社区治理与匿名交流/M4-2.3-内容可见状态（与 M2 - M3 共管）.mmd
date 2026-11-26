@@ -1,0 +1,12 @@
+stateDiagram-v2
+    direction LR
+    state "可见" as Visible
+    state "已下架 / 已隐藏" as Hidden
+    state "已删除" as Deleted
+
+    [*] --> Visible : 发布帖子或发表评论成功
+    Visible --> Hidden : 管理员处置（帖子下架、评论隐藏）
+    Visible --> Deleted : 作者删除本人内容
+    Hidden --> Deleted : 作者删除本人内容
+    Hidden --> [*] : 维持下架或隐藏（本期不支持恢复）
+    Deleted --> [*]

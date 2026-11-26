@@ -1,0 +1,29 @@
+classDiagram
+    direction LR
+
+    class User {
+        +Long id
+        +String nickname
+    }
+    class Role {
+        +Long id
+        +String name
+    }
+    class Permission {
+        +Long id
+        +String code
+        +String name
+    }
+    class UserRole {
+        +Long userId
+        +Long roleId
+    }
+    class RolePermission {
+        +Long roleId
+        +Long permissionId
+    }
+
+    User "1" -- "*" UserRole
+    Role "1" -- "*" UserRole
+    Role "1" -- "*" RolePermission
+    Permission "1" -- "*" RolePermission

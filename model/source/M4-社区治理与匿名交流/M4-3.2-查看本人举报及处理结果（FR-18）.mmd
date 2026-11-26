@@ -1,0 +1,37 @@
+sequenceDiagram
+    autonumber
+    actor S as 学生
+    participant FE as 前端
+    participant Auth as 鉴权中间件
+    participant RC as ReportController
+    participant RS as ReportService
+    participant CQ as ContentQueryService
+    participant DB as 数据库
+
+    S->>FE: 打开“我的举报”
+    FE->>Auth: GET /me/reports?status=可选状态
+    alt 未登录或会话失效
+        Auth-->>FE: 401
+    else 已登录
+        Auth->>RC: 放行（userId）
+        RC->>RS: listMine(userId, status, page)
+        RS->>DB: SELECT report WHERE reporter_id=currentUserId
+        Note over RS,DB: reporter_id 强制使用会话用户，忽略客户端传入值
+        DB-->>RS: 本人举报记录
+        RS->>CQ: 获取目标类型与最小摘要
+        CQ-->>RS: 目标摘要；已删除或下架时使用占位文案
+        RS-->>FE: 状态、原因、提交时间、结论、处置、处理时间、目标摘要
+    end
+
+    S->>FE: 查看单条举报详情
+    FE->>Auth: GET /me/reports/{id}
+    Auth->>RC: 放行（userId）
+    RC->>RS: getMine(userId, reportId)
+    RS->>DB: SELECT report WHERE id=? AND reporter_id=currentUserId
+    alt 不存在或不属于本人
+        DB-->>RS: 无记录
+        RS-->>FE: 404，不泄露他人记录是否存在
+    else 属于本人
+        DB-->>RS: 举报记录
+        RS-->>FE: 200 本人举报详情与处理结论
+    end

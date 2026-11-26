@@ -1,0 +1,16 @@
+stateDiagram-v2
+    direction LR
+    state "待处理" as Pending
+    state "成立" as Upheld
+    state "不成立" as Rejected
+
+    [*] --> Pending : 学生提交举报
+    Pending --> Upheld : 管理员核查成立，记录结论与处置
+    Pending --> Rejected : 管理员核查不成立
+    Upheld --> [*] : 结案，举报人可查看结论
+    Rejected --> [*] : 结案，举报人可查看结论
+
+    note right of Pending
+        重复提交不新建记录，也不发生状态迁移；
+        直接返回已有待处理记录。
+    end note
