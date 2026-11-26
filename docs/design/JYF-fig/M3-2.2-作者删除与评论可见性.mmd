@@ -1,0 +1,10 @@
+stateDiagram-v2
+    direction LR
+    state "可见评论" as Visible
+    state "已隐藏" as Hidden
+    state "已删除" as Deleted
+    [*] --> Visible : 发评论成功
+    Visible --> Hidden : 接收隐藏状态
+    Visible --> Deleted : 评论作者撤回
+    Hidden --> Deleted : 评论作者撤回
+    Deleted --> Deleted : 重复撤回
