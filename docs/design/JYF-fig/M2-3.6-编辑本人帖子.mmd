@@ -1,0 +1,19 @@
+sequenceDiagram
+    autonumber
+    actor S as 发帖人
+    participant P as PostService
+    participant DB as 数据库
+    S->>P: PATCH /posts/{id}，提交标题、正文或板块变更
+    P->>P: 校验会话与允许修改的字段
+    opt 请求迁板
+        P->>DB: 在事务内先锁定目的板块
+    end
+    P->>DB: 锁定帖子，重新确认作者、状态与板块
+    alt 帖子不存在或归属不匹配
+        P-->>S: 404
+    else 帖子不可编辑或目的板块已停用
+        P-->>S: 409，返回具体原因
+    else 校验通过
+        P->>DB: 更新允许的字段并提交，保留帖子 ID 和关联
+        P-->>S: 200，返回更新摘要
+    end
