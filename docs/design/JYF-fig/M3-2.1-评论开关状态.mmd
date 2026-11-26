@@ -1,0 +1,12 @@
+stateDiagram-v2
+    direction LR
+    state "开启" as Enabled
+    state "关闭" as Disabled
+    [*] --> Enabled : 帖子发布成功
+    Enabled --> Disabled : 发帖人关闭评论
+    Disabled --> Enabled : 发帖人重新开启评论
+    note right of Disabled
+        拒绝新增评论
+        已有可见评论照常展示
+        评论作者仍可删除自己的评论
+    end note
