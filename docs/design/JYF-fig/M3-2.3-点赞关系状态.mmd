@@ -1,0 +1,9 @@
+stateDiagram-v2
+    direction LR
+    state "未点赞" as Unliked
+    state "已点赞" as Liked
+    [*] --> Unliked
+    Unliked --> Liked : PUT，可见且会话有效
+    Liked --> Unliked : DELETE，可见且会话有效
+    Liked --> Liked : 重复点赞
+    Unliked --> Unliked : 重复取消
